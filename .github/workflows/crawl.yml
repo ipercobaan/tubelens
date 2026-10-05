@@ -1,0 +1,33 @@
+# TubeLens — crawl harian otomatis (tanpa server).
+# Jalan tiap hari 02:00 WIB, nulis langsung ke Supabase.
+# Setup sekali (lihat DEPLOY.md):
+#   Repo → Settings → Secrets and variables → Actions → New repository secret:
+#     SUPABASE_URL          = https://xyz.supabase.co
+#     SUPABASE_SERVICE_KEY  = service_role key (bukan anon!)
+
+name: Daily Crawl
+
+on:
+  schedule:
+    - cron: "0 19 * * *"   # 19:00 UTC = 02:00 WIB
+  workflow_dispatch: {}      # tombol "Run workflow" manual
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install feedparser yt-dlp supabase
+
+      - name: Crawl + score
+        run: python crawler_supa.py --max-videos 8 --stats-limit 120
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
